@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-#define BOARD_SIZE 3
+#define BOARD_SIZE 5
+#define VICTORY_COUNT 3
+#define MAX_COMP_REC 50
 
 typedef enum {
 	X, // Jogador 1 
@@ -12,7 +16,15 @@ typedef struct
 {
 	Player places[BOARD_SIZE][BOARD_SIZE];
 	unsigned int round;
+	unsigned int weight;
+	unsigned int is_win_scenario;
 } Board;
+
+typedef struct 
+{
+	int row;
+	int col;
+} Move;
 
 Board new_board() 
 {
@@ -20,6 +32,7 @@ Board new_board()
 	int i, j;
 
 	b.round = 1;
+	b.weight = 0;
 
 	for (i = 0; i < BOARD_SIZE; i += 1) 
 	{
@@ -30,6 +43,103 @@ Board new_board()
 	}
 
 	return b;
+}
+
+Board new_board_from(Board b) 
+{
+	Board new;
+	int i, j;
+
+	new.round = b.round;
+	new.weight = b.weight;
+
+	for (i = 0; i < BOARD_SIZE; i += 1) 
+	{
+		for (j = 0; j < BOARD_SIZE; j += 1) 
+		{
+			new.places[i][j] = b.places[i][j];
+		}
+	}
+
+	return new;
+}
+
+void h(Board* b) 
+{
+	int i, j, count_row, count_col, count_d;
+
+	b->weight = 0;
+
+	for (i = 0; i < BOARD_SIZE; i += 1) 
+	{
+		count_row = 0;
+		count_col = 0;
+
+		for (j = 0; j < BOARD_SIZE; j += 1) 
+		{
+			if (b->places[i][j] == O) 
+			{
+				count_row += 1;
+			}
+
+			if (b->places[j][i] == O) 
+			{
+				count_col += 1;
+			}
+		}
+
+		if (count_row >= VICTORY_COUNT || count_col >= VICTORY_COUNT) 
+		{
+			b->is_win_scenario = 1;
+			return;
+		}
+
+		b->weight += count_row + count_col;
+	}
+
+	count_d = 0;
+
+	for (i = 0; i < BOARD_SIZE; i += 1) 
+	{
+		if (b->places[i][i] == O) 
+		{
+			count_d += 1;
+		}
+		else 
+		{
+			count_d = 0;
+		}
+
+		if (count_d >= VICTORY_COUNT) 
+		{
+			b->is_win_scenario = 1;
+			return;
+		}
+
+		b->weight += count_d;
+	}
+
+	count_d = 0;
+
+	for (i = 1; i <= BOARD_SIZE; i += 1) 
+	{
+		if (b->places[i - 1][BOARD_SIZE - i] == O) 
+		{
+			count_d += 1;
+		}
+		else 
+		{
+			count_d = 0;
+		}
+
+		if (count_d >= VICTORY_COUNT) 
+		{
+			b->is_win_scenario = 1;
+			return;
+		}
+
+		b->weight += count_d;
+	}
 }
 
 char player_to_str(Player p) 
@@ -45,7 +155,8 @@ void print_board(Board b)
 
 	printf("\n");
 
-	printf("Round: %d\n\n", b.round);
+	printf("Round: %d\n", b.round);
+	printf("Peso: %d\n\n", b.weight);
 
 	for (i = 0; i < BOARD_SIZE; i += 1) 
 	{
@@ -101,53 +212,143 @@ int check_move(Board* b, int row, int col)
 	return b->places[row][col] == E;
 }
 
-Player has_winner(Board b) 
+int player_has_won(Player p, Board b) 
 {
-	int i, j, has_won;
-	Player aux;
-	Player* row;
+	int i, j, count_row, count_col, count_d;
 
 	for (i = 0; i < BOARD_SIZE; i += 1) 
 	{
-		row = b.places[i];
-		aux = row[0];
-		has_won = 1;
+		count_row = 0;
+		count_col = 0;
 
-		for (j = 1; j < BOARD_SIZE; j += 1) 
+		for (j = 0; j < BOARD_SIZE; j += 1) 
 		{
-			if (row[j] != aux) 
+			if (b.places[i][j] == p) 
 			{
-				has_won = 0;
+				count_row += 1;
+			}
+
+			if (b.places[j][i] == p) 
+			{
+				count_col += 1;
 			}
 		}
 
-		if (has_won) 
+		if (count_row >= VICTORY_COUNT || count_col >= VICTORY_COUNT) 
 		{
-			return aux;
+			return 1;
 		}
 	}
 
-	for (i = 1; i < BOARD_SIZE; i += 1) 
+	count_d = 0;
+
+	for (i = 0; i < BOARD_SIZE; i += 1) 
 	{
-		aux = b.places[0][i];
-		has_won = 1;
-
-		for (j = 1; j < BOARD_SIZE; j += 1) 
+		if (b.places[i][i] == p) 
 		{
-			if (b.places[i][j] != aux) 
-			{
-				has_won = 0;
-			}
+			count_d += 1;
+		}
+		else 
+		{
+			count_d = 0;
 		}
 
-		if (has_won) 
+		if (count_d >= VICTORY_COUNT) 
 		{
-			return aux;
+			return 1;
 		}
 	}
 
+	count_d = 0;
 
+	for (i = 1; i <= BOARD_SIZE; i += 1) 
+	{
+		if (b.places[i - 1][BOARD_SIZE - i] == p) 
+		{
+			count_d += 1;
+		}
+		else 
+		{
+			count_d = 0;
+		}
+
+		if (count_d >= VICTORY_COUNT) 
+		{
+			return 1;
+		}	
+	}
+
+	return 0;
+}
+
+Player has_winner(Board b) 
+{
+	if (player_has_won(X, b)) return X;
+	if (player_has_won(O, b)) return O;
 	return E;
+}
+
+int is_velha(Board b) 
+{
+	int i, j;
+
+	for (i = 0; i < BOARD_SIZE; i += 1) 
+	{
+		for (j = 0; j < BOARD_SIZE; j += 1) 
+		{
+			if (b.places[i][j] != E) 
+			{
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+Move random_move(Board b) 
+{
+	int r_col, r_row, is_valid = 0;
+	Move res;
+
+	srand(time(NULL));
+
+	while ( ! is_valid) 
+	{
+		r_row = rand() % BOARD_SIZE;
+		r_col = rand() % BOARD_SIZE;
+
+		if (check_move(&b, r_row, r_col)) 
+		{
+			is_valid = 1;
+		}
+	}
+
+	res.row = r_row;
+	res.col = r_col;
+
+	return res;
+}
+
+Move next(Board b) 
+{
+	Board best;
+	Move res;
+	int limit = 0;
+
+	while (best.weight < b.weight && limit < MAX_COMP_REC) 
+	{
+		best = new_board_from(b);
+		res = random_move(b);
+
+		best.places[res.row][res.col] = O;
+
+		h(&best);
+
+		limit += 1;
+	}
+
+	return res;
 }
 
 int main(void) 
@@ -155,6 +356,7 @@ int main(void)
 	Board b = new_board();
 	Player who_is = X;
 	Player winner = E;
+	Move comp_move;
 	int has_end = 0;
 	int has_choose = 0;
 	int is_against_machine = 0;
@@ -181,6 +383,7 @@ int main(void)
 	
 	while ( ! has_end) 
 	{
+		h(&b);
 		print_board(b);
 
 		if ( ! is_against_machine && ! is_machine_turn) 
@@ -214,32 +417,6 @@ int main(void)
 
 			b.places[row][col] = who_is;
 
-			winner = has_winner(b);
-
-			if (winner != E) 
-			{
-				print_board(b);
-
-				if (winner == X) 
-				{
-					printf("O jogador X venceu!\n");
-				}
-				else 
-				{
-					printf("O jogador O venceu!\n");
-				}
-
-				has_end = 1;
-			}
-
-			if (who_is == X) 
-			{
-				who_is = O;
-			}
-			else 
-			{
-				who_is = X;
-			}
 
 			if (is_against_machine) 
 			{
@@ -248,12 +425,65 @@ int main(void)
 		} 
 		else 
 		{
-			// Machinesss!!
+			comp_move = next(b);
+
+			b.places[comp_move.row][comp_move.col] = O;
 
 			is_machine_turn = 0;
 		}
 
-		b.round += 1; 
+		winner = has_winner(b);
+
+		if (winner != E) 
+		{
+			print_board(b);
+
+			if (winner == X) 
+			{
+				printf("O jogador X venceu!\n");
+			}
+			else 
+			{
+				printf("O jogador O venceu!\n");
+			}
+
+			has_end = 1;
+		}
+
+		if (who_is == X) 
+		{
+			who_is = O;
+		}
+		else 
+		{
+			who_is = X;
+		}
+
+		b.round += 1;
+
+		if ( ! has_end && is_velha(b)) 
+		{
+			has_choose = 0;
+
+			while ( ! has_choose) 
+			{
+				printf("Deu Velha! Deseja repetir? [Y/N]\n");
+
+				scanf(" %c", &choice);
+
+				if (comp_char(choice, 'Y') || comp_char(choice, 'y')) 
+				{
+					b = new_board();
+					has_choose = 1;
+				}
+				else if (comp_char(choice, 'N') || comp_char(choice, 'n')) 
+				{
+					has_end = 1;
+					has_choose = 1;
+				}
+			}
+		}
+
 	}
 
 	printf("Fim!\n");
