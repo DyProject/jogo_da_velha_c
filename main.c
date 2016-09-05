@@ -2,9 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define BOARD_SIZE 5
+#define BOARD_SIZE 3
 #define VICTORY_COUNT 3
-#define MAX_COMP_REC 50
 
 typedef enum {
 	X, // Jogador 1 
@@ -62,84 +61,6 @@ Board new_board_from(Board b)
 	}
 
 	return new;
-}
-
-void h(Board* b) 
-{
-	int i, j, count_row, count_col, count_d;
-
-	b->weight = 0;
-
-	for (i = 0; i < BOARD_SIZE; i += 1) 
-	{
-		count_row = 0;
-		count_col = 0;
-
-		for (j = 0; j < BOARD_SIZE; j += 1) 
-		{
-			if (b->places[i][j] == O) 
-			{
-				count_row += 1;
-			}
-
-			if (b->places[j][i] == O) 
-			{
-				count_col += 1;
-			}
-		}
-
-		if (count_row >= VICTORY_COUNT || count_col >= VICTORY_COUNT) 
-		{
-			b->is_win_scenario = 1;
-			return;
-		}
-
-		b->weight += count_row + count_col;
-	}
-
-	count_d = 0;
-
-	for (i = 0; i < BOARD_SIZE; i += 1) 
-	{
-		if (b->places[i][i] == O) 
-		{
-			count_d += 1;
-		}
-		else 
-		{
-			count_d = 0;
-		}
-
-		if (count_d >= VICTORY_COUNT) 
-		{
-			b->is_win_scenario = 1;
-			return;
-		}
-
-		b->weight += count_d;
-	}
-
-	count_d = 0;
-
-	for (i = 1; i <= BOARD_SIZE; i += 1) 
-	{
-		if (b->places[i - 1][BOARD_SIZE - i] == O) 
-		{
-			count_d += 1;
-		}
-		else 
-		{
-			count_d = 0;
-		}
-
-		if (count_d >= VICTORY_COUNT) 
-		{
-			b->is_win_scenario = 1;
-			return;
-		}
-
-		b->weight += count_d;
-	}
 }
 
 char player_to_str(Player p) 
@@ -212,110 +133,36 @@ int check_move(Board* b, int row, int col)
 	return b->places[row][col] == E;
 }
 
-int player_has_won(Player p, Board b) 
-{
-	int i, j, count_row, count_col, count_d;
-
-	for (i = 0; i < BOARD_SIZE; i += 1) 
-	{
-		count_row = 0;
-		count_col = 0;
-
-		for (j = 0; j < BOARD_SIZE; j += 1) 
-		{
-			if (b.places[i][j] == p) 
-			{
-				count_row += 1;
-			}
-
-			if (b.places[j][i] == p) 
-			{
-				count_col += 1;
-			}
-		}
-
-		if (count_row >= VICTORY_COUNT || count_col >= VICTORY_COUNT) 
-		{
-			return 1;
-		}
-	}
-
-	count_d = 0;
-
-	for (i = 0; i < BOARD_SIZE; i += 1) 
-	{
-		if (b.places[i][i] == p) 
-		{
-			count_d += 1;
-		}
-		else 
-		{
-			count_d = 0;
-		}
-
-		if (count_d >= VICTORY_COUNT) 
-		{
-			return 1;
-		}
-	}
-
-	count_d = 0;
-
-	for (i = 1; i <= BOARD_SIZE; i += 1) 
-	{
-		if (b.places[i - 1][BOARD_SIZE - i] == p) 
-		{
-			count_d += 1;
-		}
-		else 
-		{
-			count_d = 0;
-		}
-
-		if (count_d >= VICTORY_COUNT) 
-		{
-			return 1;
-		}	
-	}
-
-	return 0;
-}
-
-/*Player has_winner(Board b) 
-{
-	if (player_has_won(X, b)) return X;
-	if (player_has_won(O, b)) return O;
-	return E;
-}*/
-
+/**
+ * Verifica se há um vencedor no jogo e o retorna.
+ */
 Player has_winner(Board b) 
 {
-	int i, j, k, m, n, p;
-	int has_won_row, has_won_col, has_won_d;
-	Player row_p, col_p, mid_p;
+	int i, j, k, m, n;
+	int has_won_col, has_won_row, has_won_d, has_won_ad;
+	Player lc_p, mid_p;
 
+	// Espaço disponível para buscar do meio do jogo
 	int disp = VICTORY_COUNT - 2;
+	// Tamnanho do jogo nXn
 	int m_size = BOARD_SIZE - (VICTORY_COUNT - 1);
 
-	for (i = 1, j = 1; i < m_size; i += 1) 
+	// Percorre o jogo a matriz dentro do jogo, isto é, eliminando as
+	// bordas da tabela, com uma matriz de mXm, onde m é o número de
+	// espaços consecutivos necessários para ganhar o jogo
+	for (i = 1, j = 1; i <= m_size; j += 1) 
 	{
+		// Jogador na posição central da matriz de busca
 		mid_p = b.places[i][j];
-		has_won_d = 0;
+		has_won_d = 1;
 
-		for (k = i, m = j; k < i + disp; k += 1, j += 1) 
+		for (k = 1; k <= disp; k += 1) 
 		{
-			if (b.places[k - 1][j - 1] != mid_p
-			 || b.places[k + 1][j + 1] != mid_p) 
+			// Checa as diagonais
+			if (b.places[i - k][j - k] != mid_p
+			 || b.places[i + k][j + k] != mid_p) 
 			{
 				has_won_d = 0;
-				break;
-			}
-
-			if (b.places[k + 1][j - 1] != mid_p
-			 || b.places[k - 1][j + 1] != mid_p) 
-			{
-				has_won_d = 0;
-				break;
 			}
 		}
 
@@ -324,22 +171,39 @@ Player has_winner(Board b)
 			return mid_p;
 		}
 
+		has_won_ad = 1;
+
+		for (k = 1; k <= disp; k += 1) 
+		{
+			// Checa as antidiagonais
+			if (b.places[i + k][j - k] != mid_p
+			 || b.places[i - k][j + k] != mid_p) 
+			{
+				has_won_ad = 0;
+			}
+		}
+
+		if (has_won_ad) 
+		{
+			return mid_p;
+		}
+
 		for (k = i - disp, m = j - disp; k <= i + disp; k += 1, m += 1) 
 		{
-			row_p = b.places[k][i - disp];
-			col_p = b.places[j - disp][m];
+			// Jogador no canto da matriz 
+			lc_p = b.places[k][m];
 
 			has_won_row = 1;
 			has_won_col = 1;
 
-			for (n = i - (disp - 1), p = j - (disp - 1); n <= i + disp; n += 1, p += 1) 
+			for (n = 1; n <= disp + 1; n += 1) 
 			{
-				if (row_p != b.places[k][n]) 
+				if (lc_p != b.places[k][m + n])
 				{
 					has_won_row = 0;
 				}
 
-				if (col_p != b.places[p][m]) 
+				if (lc_p != b.places[k + n][m]) 
 				{
 					has_won_col = 0;
 				}
@@ -347,12 +211,12 @@ Player has_winner(Board b)
 
 			if (has_won_row) 
 			{
-				return row_p;
+				return lc_p;
 			}
 
 			if (has_won_col) 
 			{
-				return col_p;
+				return lc_p;
 			}
 		}
 
@@ -363,6 +227,8 @@ Player has_winner(Board b)
 			j = 1;
 		}
 	}
+
+	return E;
 }
 
 int is_velha(Board b) 
@@ -381,51 +247,6 @@ int is_velha(Board b)
 	}
 
 	return 1;
-}
-
-Move random_move(Board b) 
-{
-	int r_col, r_row, is_valid = 0;
-	Move res;
-
-	srand(time(NULL));
-
-	while ( ! is_valid) 
-	{
-		r_row = rand() % BOARD_SIZE;
-		r_col = rand() % BOARD_SIZE;
-
-		if (check_move(&b, r_row, r_col)) 
-		{
-			is_valid = 1;
-		}
-	}
-
-	res.row = r_row;
-	res.col = r_col;
-
-	return res;
-}
-
-Move next(Board b) 
-{
-	Board best;
-	Move res;
-	int limit = 0;
-
-	while (best.weight < b.weight && limit < MAX_COMP_REC) 
-	{
-		best = new_board_from(b);
-		res = random_move(b);
-
-		best.places[res.row][res.col] = O;
-
-		h(&best);
-
-		limit += 1;
-	}
-
-	return res;
 }
 
 int main(void) 
@@ -460,7 +281,6 @@ int main(void)
 	
 	while ( ! has_end) 
 	{
-		h(&b);
 		print_board(b);
 
 		if ( ! is_against_machine && ! is_machine_turn) 
@@ -502,11 +322,6 @@ int main(void)
 		} 
 		else 
 		{
-			comp_move = next(b);
-
-			b.places[comp_move.row][comp_move.col] = O;
-
-			is_machine_turn = 0;
 		}
 
 		winner = has_winner(b);
