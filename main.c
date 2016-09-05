@@ -281,11 +281,88 @@ int player_has_won(Player p, Board b)
 	return 0;
 }
 
-Player has_winner(Board b) 
+/*Player has_winner(Board b) 
 {
 	if (player_has_won(X, b)) return X;
 	if (player_has_won(O, b)) return O;
 	return E;
+}*/
+
+Player has_winner(Board b) 
+{
+	int i, j, k, m, n, p;
+	int has_won_row, has_won_col, has_won_d;
+	Player row_p, col_p, mid_p;
+
+	int disp = VICTORY_COUNT - 2;
+	int m_size = BOARD_SIZE - (VICTORY_COUNT - 1);
+
+	for (i = 1, j = 1; i < m_size; i += 1) 
+	{
+		mid_p = b.places[i][j];
+		has_won_d = 0;
+
+		for (k = i, m = j; k < i + disp; k += 1, j += 1) 
+		{
+			if (b.places[k - 1][j - 1] != mid_p
+			 || b.places[k + 1][j + 1] != mid_p) 
+			{
+				has_won_d = 0;
+				break;
+			}
+
+			if (b.places[k + 1][j - 1] != mid_p
+			 || b.places[k - 1][j + 1] != mid_p) 
+			{
+				has_won_d = 0;
+				break;
+			}
+		}
+
+		if (has_won_d) 
+		{
+			return mid_p;
+		}
+
+		for (k = i - disp, m = j - disp; k <= i + disp; k += 1, m += 1) 
+		{
+			row_p = b.places[k][i - disp];
+			col_p = b.places[j - disp][m];
+
+			has_won_row = 1;
+			has_won_col = 1;
+
+			for (n = i - (disp - 1), p = j - (disp - 1); n <= i + disp; n += 1, p += 1) 
+			{
+				if (row_p != b.places[k][n]) 
+				{
+					has_won_row = 0;
+				}
+
+				if (col_p != b.places[p][m]) 
+				{
+					has_won_col = 0;
+				}
+			}
+
+			if (has_won_row) 
+			{
+				return row_p;
+			}
+
+			if (has_won_col) 
+			{
+				return col_p;
+			}
+		}
+
+
+		if (j == BOARD_SIZE - 1) 
+		{
+			i += 1;
+			j = 1;
+		}
+	}
 }
 
 int is_velha(Board b) 
